@@ -34,6 +34,7 @@ import android.util.Log;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 /**
@@ -47,6 +48,8 @@ public class BluetoothLeService extends Service {
     private BluetoothAdapter mBluetoothAdapter;
     private String mBluetoothDeviceAddress;
     private BluetoothGatt mBluetoothGatt;
+
+    private BluetoothGattCharacteristic previousNotifyCharacteristic = null;
     private int mConnectionState = STATE_DISCONNECTED;
 
     private static final int STATE_DISCONNECTED = 0;
@@ -276,6 +279,43 @@ public class BluetoothLeService extends Service {
     }
 
     /**
+     * Request a write on a given {@code BluetoothGattCharacteristic}
+     *
+     * @param characteristic The characteristic to write from.
+     */
+    public void writeCharacteristic(BluetoothGattCharacteristic characteristic) {
+        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+            Log.w(TAG, "BluetoothAdapter not initialized");
+            return;
+        }
+
+        byte value[] = {-2, -22, 16, 5, 0};
+
+        // TODO: This is a test. I request different features randomly
+        switch (new Random().nextInt() % 3) {
+            case 0:
+                value[4] = SampleGattAttributes.FEATURE_HEART_RATE;
+                break;
+
+            case 1:
+                value[4] = SampleGattAttributes.FEATURE_PRESSURE;
+                break;
+
+            default:
+                value[4] = SampleGattAttributes.FEATURE_BLOOD_OXYGEN;
+        }
+
+        characteristic.setValue(value);
+
+        mBluetoothGatt.writeCharacteristic(characteristic);
+
+        BluetoothGattService genericService = mBluetoothGatt.getService(UUID.fromString(SampleGattAttributes.GENERIC_SERVICE));
+        BluetoothGattCharacteristic notifyCharacteristic = genericService.getCharacteristic(UUID.fromString(SampleGattAttributes.CHARACTERISTIC_TO_NOTIFY));
+        this.setCharacteristicNotification(notifyCharacteristic, true);
+
+    }
+
+    /**
      * Request a read on a given {@code BluetoothGattCharacteristic}. The read result is reported
      * asynchronously through the {@code BluetoothGattCallback#onCharacteristicRead(android.bluetooth.BluetoothGatt, android.bluetooth.BluetoothGattCharacteristic, int)}
      * callback.
@@ -302,11 +342,20 @@ public class BluetoothLeService extends Service {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
+
+        if (enabled && previousNotifyCharacteristic != null) {
+            mBluetoothGatt.setCharacteristicNotification(previousNotifyCharacteristic, false);
+            previousNotifyCharacteristic = null;
+        }
+
         mBluetoothGatt.setCharacteristicNotification(characteristic, enabled);
+        if (enabled) {
+            previousNotifyCharacteristic = characteristic;
+        }
 
         // This is specific to Heart Rate Measurement.
         // if (UUID_HEART_RATE_MEASUREMENT.equals(characteristic.getUuid())) {
-        if (characteristic.getProperties() == 16) {
+        if ((characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
             BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
                     UUID.fromString(SampleGattAttributes.CLIENT_CHARACTERISTIC_CONFIG));
             descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);

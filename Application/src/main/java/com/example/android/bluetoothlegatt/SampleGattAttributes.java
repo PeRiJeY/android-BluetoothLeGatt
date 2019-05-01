@@ -26,6 +26,14 @@ public class SampleGattAttributes {
     public static String HEART_RATE_MEASUREMENT = "00002a37-0000-1000-8000-00805f9b34fb";
     public static String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
 
+    public static byte FEATURE_HEART_RATE = 109;
+    public static byte FEATURE_PRESSURE = 105;
+    public static byte FEATURE_BLOOD_OXYGEN = 107;
+
+    public static String GENERIC_SERVICE = "0000feea-0000-1000-8000-00805f9b34fb";
+    public static String CHARACTERISTIC_TO_WRITE = "0000fee2-0000-1000-8000-00805f9b34fb";
+    public static String CHARACTERISTIC_TO_NOTIFY = "0000fee3-0000-1000-8000-00805f9b34fb";
+
     /*static {
         // Sample Services.
         attributes.put("0000180d-0000-1000-8000-00805f9b34fb", "Heart Rate Service");
